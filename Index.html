@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ATR Калькулятор</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            background: #fff;
+            padding: 20px;
+            margin: 50px auto;
+            width: 90%;
+            max-width: 600px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+        .button-container {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .long-short-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            width: 45%;
+        }
+        .long-short-button:hover {
+            opacity: 0.8;
+        }
+        .long-button {
+            background-color: #28a745;
+            color: white;
+        }
+        .short-button {
+            background-color: #dc3545;
+            color: white;
+        }
+        .reset-button {
+            padding: 5px 12px;
+            font-size: 12px;
+            top: 5px;
+            right: 5px;
+            left: auto;
+            width: 100px;
+        }
+        .reset-button:hover {
+            background-color: #cc0000;
+        }
+        input, button {
+            display: block;
+            width: 60%;
+            margin: 10px auto;
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        button {
+            background-color: #007BFF;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #imagesContainer {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+        }
+        .image-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 45%;
+            margin-bottom: 15px;
+        }
+        .image-box img {
+            width: 80px;
+            height: auto;
+            margin-bottom: 5px;
+        }
+        .result {
+            font-weight: bold;
+            margin-top: 5px;
+        }
+       
+        #alertMessage {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            font-size: 18px;
+            border-radius: 10px;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+        #raschetpozicii {
+            font-size: 24px;
+            font-weight: bold;
+            margin-top: 30px;
+            color: #333;
+            margin-top: 15px;
+        }
+        #positionResult {
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 10px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="button-container">
+            <button class="long-short-button long-button" id="longButton">Long</button>
+            <button class="long-short-button short-button" id="shortButton">Short</button>
+        </div>
+        <button class="reset-button" id="resetButton">Сброс</button>
+        <h1>ATR Калькулятор</h1>
+        <label for="numberSelector">Введите количество дней (не более 5):</label>
+        <input type="number" id="numberSelector" min="1" max="5" value="1" oninput="this.value = Math.min(5, Math.max(1, this.value))">
+        <div id="alertMessage"></div>
+
+        <div id="imagesContainer"></div>
+        
+        <div id="averageResult" style="margin-top: 5px; margin-bottom: 20px; font-weight: bold;  font-size: 20px;">Средний ATR: -</div>
+        
+        <label for="percentInput">Процент для стоп-лосса:</label>
+        <input type="number" id="percentInput" placeholder="Введите процент">
+        
+        <button id="calculateButton">Рассчитать стоп-лосс</button>
+        
+        <div id="calculationContainer" style="margin-bottom: 15px;">
+            <div id="stopLossResult" class="bold-text">Размер стопа:</div>
+            <div id="spreadResult" class="bold-text">Люфт: -</div>
+        </div>
+
+        <label id="raschetpozicii" for="risk">Расчет позиции</label>
+        <input type="checkbox" id="myDataCheckbox">
+        <label for="myDataCheckbox">Мои данные</label>
+        <input type="number" id="tvh" placeholder="Введите ТВХ">
+        <input type="number" id="risk" placeholder="Введите риск">
+        
+        <input type="number" id="stopPrice" placeholder="Введите цену стопа" style="display: none;">
+
+        <button id="calculatePositionButton">Рассчитать позицию</button>
+        <div id="positionResult">Результат: -</div>
+        <!-- Нижняя секция -->
+        <div class="bottom-section">
+            <div class="center-text">
+                <p class="bold-text" style="margin-top: 15px; margin-bottom: 10px; font-weight: bold;  font-size: 20px;">Общие данные</p>
+                <label for="riskProfitRatio">Соотношение прибыли:</label>
+                <input type="number" id="riskProfitRatio" placeholder="Введите соотношение">
+            </div>
+        </div>
+        <button id="generalCalculationButton">Общий расчет</button>
+        <div id="generalCalculationResult" style="margin-top: 10px; font-weight: bold; font-size: 18px; color: #333;">Результат общего расчета: -</div>
+
+    </div>
+
+    <script>
+     document.addEventListener('DOMContentLoaded', () => {
+    const numberSelector = document.getElementById('numberSelector');
+    const imagesContainer = document.getElementById('imagesContainer');
+    const averageResult = document.getElementById('averageResult');
+    const calculateButton = document.getElementById('calculateButton');
+    const resetButton = document.getElementById('resetButton');
+    const percentInput = document.getElementById('percentInput');
+    const stopLossResult = document.getElementById('stopLossResult');
+    const spreadResult = document.getElementById('spreadResult');
+    const alertMessage = document.getElementById('alertMessage');
+    const myDataCheckbox = document.getElementById('myDataCheckbox');
+    const stopPriceInput = document.getElementById('stopPrice');
+    const tvhInput = document.getElementById('tvh');
+    const riskInput = document.getElementById('risk');
+    const calculatePositionButton = document.getElementById('calculatePositionButton');
+    const positionResult = document.getElementById('positionResult');
+
+    let results = [];
+    let currentSelection = '';
+
+    function showAlert(message) {
+        alertMessage.textContent = message;
+        alertMessage.style.opacity = 1;
+        setTimeout(() => {
+            alertMessage.style.opacity = 0;
+        }, 3000);
+    }
+
+    document.getElementById('longButton').addEventListener('click', () => {
+        currentSelection = 'Long';
+        showAlert(`Вы выбрали: ${currentSelection}`);
+    });
+
+    document.getElementById('shortButton').addEventListener('click', () => {
+        currentSelection = 'Short';
+        showAlert(`Вы выбрали: ${currentSelection}`);
+    });
+
+    function displayImages(count) {
+        imagesContainer.innerHTML = '';
+        results = new Array(count).fill(0);
+
+        for (let i = 0; i < count; i++) {
+            const imageBox = document.createElement('div');
+            imageBox.className = 'image-box';
+
+            const input1 = document.createElement('input');
+            input1.type = 'number';
+            input1.placeholder = 'Введите число 1';
+
+            const input2 = document.createElement('input');
+            input2.type = 'number';
+            input2.placeholder = 'Введите число 2';
+
+            const result = document.createElement('div');
+            result.className = 'result';
+            result.textContent = 'Результат: -';
+
+            const img = document.createElement('img');
+            img.src = 'https://png.klev.club/uploads/posts/2024-05/png-klev-club-xm0l-p-yaponskie-svechi-png-10.png';
+            img.alt = 'Японские свечи';
+
+            function updateResult() {
+                const val1 = parseFloat(input1.value) || 0;
+                const val2 = parseFloat(input2.value) || 0;
+                const difference = val1 - val2;
+                result.textContent = `Результат: ${difference.toFixed(10)}`;
+                results[i] = difference;
+                calculateAverage(results);
+            }
+
+            input1.addEventListener('input', updateResult);
+            input2.addEventListener('input', updateResult);
+
+            imageBox.appendChild(input1);
+            imageBox.appendChild(input2);
+            imageBox.appendChild(img);
+            imageBox.appendChild(result);
+            imagesContainer.appendChild(imageBox);
+        }
+    }
+
+    function calculateAverage(results) {
+        const sum = results.reduce((acc, val) => acc + val, 0);
+        const average = results.length > 0 ? sum / results.length : 0;
+        averageResult.textContent = `Среднее значение: ${average.toFixed(10)}`;
+    }
+
+    function calculateStopLoss() {
+        const averageValue = parseFloat(averageResult.textContent.split(': ')[1]) || 0;
+        const percentValue = parseFloat(percentInput.value) || 0;
+
+        if (percentValue > 0) {
+            const stopLoss = (averageValue * percentValue) / 100;
+            const spread = stopLoss * 0.20;
+            stopLossResult.textContent = `Размер стопа: ${stopLoss.toFixed(10)}`;
+            spreadResult.textContent = `Люфт: ${spread.toFixed(10)}`;
+        } else {
+            stopLossResult.textContent = 'Размер стопа: -';
+            spreadResult.textContent = 'Люфт: -';
+        }
+    }
+
+    function calculatePosition() {
+    const tvh = parseFloat(tvhInput.value);
+    const risk = parseFloat(riskInput.value);
+    let stopSize;
+
+    if (isNaN(tvh) || isNaN(risk) || !currentSelection) {
+        showAlert("Ошибка: Заполните все поля и выберите Long или Short!");
+        return;
+    }
+
+    if (myDataCheckbox.checked) {
+        // Пользователь ввел цену стопа вручную
+        const stopPrice = parseFloat(stopPriceInput.value);
+        if (isNaN(stopPrice)) {
+            showAlert("Ошибка: Введите цену стопа!");
+            return;
+        }
+
+        stopSize = (currentSelection === "Long") ? (tvh - stopPrice) : (stopPrice - tvh);
+    } else {
+        // Используем автоматически рассчитанный стоп-лосс из ATR
+        const stopLoss = parseFloat(stopLossResult.textContent.split(': ')[1]); // Берем число из текста "Размер стопа: X.XXXXXX"
+
+        if (isNaN(stopLoss) || stopLoss <= 0) {
+            showAlert("Ошибка: Некорректный расчет стоп-лосса!");
+            return;
+        }
+
+        stopSize = stopLoss;
+    }
+
+    if (stopSize <= 0) {
+        showAlert("Ошибка: Некорректное значение стоп-лосса!");
+        return;
+    }
+
+    const positionSize = risk / stopSize;
+
+    const positionSizeInUSD = positionSize * tvh; 
+
+    positionResult.textContent = `Объем позиции в монетах: ${positionSize.toFixed(10)} (В USD: ${positionSizeInUSD.toFixed(2)})`;
+}
+
+   
+
+    calculatePositionButton.addEventListener('click', validateAndCalculatePosition);
+    calculateButton.addEventListener('click', calculateStopLoss);
+    calculatePositionButton.addEventListener('click', calculatePosition);
+
+    resetButton.addEventListener('click', () => {
+    location.reload();
+});
+document.getElementById('generalCalculationButton').addEventListener('click', () => {
+    const tvh = parseFloat(document.getElementById('tvh').value) || 0;
+    const riskProfitRatio = parseFloat(document.getElementById('riskProfitRatio').value) || 1;
+    const checkboxChecked = document.getElementById('myDataCheckbox').checked;
+
+    let stopPrice, takeProfit, stopSize;
+
+    if (!currentSelection) {
+        showAlert("Ошибка: Выберите Long или Short!");
+        return;
+    }
+
+    if (checkboxChecked) {
+        const manualStopPrice = parseFloat(document.getElementById('stopPrice').value);
+        if (isNaN(manualStopPrice)) {
+            showAlert("Ошибка: Введите цену стопа!");
+            return;
+        }
+
+        stopPrice = manualStopPrice;
+        stopSize = Math.abs(tvh - stopPrice); // всегда положительное значение
+
+        const takeSize = stopSize * riskProfitRatio;
+
+        if (currentSelection === "Long") {
+            takeProfit = tvh + takeSize;
+        } else {
+            takeProfit = tvh - takeSize;
+        }
+    } else {
+        const stopLossText = stopLossResult.textContent.split(': ')[1] || "0";
+        const stopLoss = parseFloat(stopLossText) || 0;
+
+        if (stopLoss <= 0) {
+            showAlert("Ошибка: Стоп-лосс не рассчитан!");
+            return;
+        }
+
+        stopSize = stopLoss;
+
+        if (currentSelection === "Long") {
+            stopPrice = tvh - stopLoss;
+            takeProfit = tvh + (stopLoss * riskProfitRatio);
+        } else {
+            stopPrice = tvh + stopLoss;
+            takeProfit = tvh - (stopLoss * riskProfitRatio);
+        }
+    }
+
+    const positionMatch = positionResult.textContent.match(/([\d.]+) \(В USD: ([\d.]+)\)/);
+    const positionSize = positionMatch ? parseFloat(positionMatch[1]) : 0;
+    const positionSizeInUSD = positionMatch ? parseFloat(positionMatch[2]) : 0;
+
+    document.getElementById('generalCalculationResult').innerHTML = `
+        Цена стопа: ${stopPrice.toFixed(10)}<br>
+        Take Profit: ${takeProfit.toFixed(10)}<br>
+        Объем позиции: ${positionSize.toFixed(10)} (В USD: ${positionSizeInUSD.toFixed(2)})
+    `;
+});
+
+
+
+    myDataCheckbox.addEventListener('change', function() {
+        stopPriceInput.style.display = this.checked ? 'block' : 'none';
+    });
+
+    numberSelector.addEventListener('input', (e) => {
+        displayImages(parseInt(e.target.value));
+    });
+
+    displayImages(parseInt(numberSelector.value));
+    function validateAndCalculatePosition() {
+        if (myDataCheckbox.checked) {
+            const tvh = tvhInput.value.trim();
+            const risk = riskInput.value.trim();
+            const stopPrice = stopPriceInput.value.trim();
+
+            if (!tvh || !risk || !stopPrice) {
+                showAlert('Ошибка: Заполните все поля!');
+                return;
+            }
+        }
+        calculatePosition();
+    }
+});
+
+
+    </script>
+</body>
+</html>
